@@ -1,5 +1,9 @@
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from app.config import settings
 from app.database import engine, Base
@@ -15,13 +19,28 @@ from app.api import (
     seed,
 )
 
-Base.metadata.create_all(bind=engine)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        Base.metadata.create_all(bind=engine)
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        logger.info("Database connected and tables created")
+    except Exception as e:
+        logger.warning(f"Database initialization warning (will retry): {e}")
+    yield
+
 
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.VERSION,
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -41,6 +60,15 @@ app.include_router(execute.router)
 app.include_router(progress.router)
 app.include_router(comments.router)
 app.include_router(seed.router)
+
+
+@app.get("/")
+def root():
+    return {
+        "service": settings.APP_NAME,
+        "version": settings.VERSION,
+        "docs": "/docs",
+    }
 
 
 @app.get("/api/health")
