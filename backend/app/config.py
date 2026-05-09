@@ -13,6 +13,13 @@ class Settings(BaseSettings):
         "postgresql://postgres:postgres@localhost:5432/codelang_academy"
     )
 
+    @property
+    def database_url_normalized(self) -> str:
+        url = self.DATABASE_URL
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql://", 1)
+        return url
+
     JWT_SECRET: str = os.getenv("JWT_SECRET", "super-secret-key-change-in-production")
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRATION_MINUTES: int = 60 * 24
