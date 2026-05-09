@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: codelang-academy-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: codelang-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://codelang-academy.vercel.app,https://codelang-academy-git-*.vercel.app
+      - key: DOCKER_ENABLED
+        value: "false"
+
+databases:
+  - name: codelang-db
+    plan: free
+    databaseName: codelang_academy
